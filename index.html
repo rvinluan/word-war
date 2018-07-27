@@ -1,0 +1,134 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Word War</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+    </style>
+    <link rel="stylesheet" href="main.css">
+  </head>
+  <body>
+    <div id="concierge">
+      <div class="concierge-content">
+        <h1>Word War</h1>
+        <p>Today's puzzle is a list of common words that contain "ine", ordered alphabetically. The first and last words are provided for reference.</p>
+        <p>Pick a team and guess words. As words are guessed, the point value of each word goes up. i.e. the first word found is worth 1 point, the second word found is worth 2 points, etc.</p>
+        <p>After all words are found, the team with the most points wins.</p>
+        <div class="team-choice">
+          <button id="blue-team-start">Blue team</button>
+          <button id="orange-team-start">Orange team</button>
+        </div>
+      </div>
+    </div>
+    <main>
+      <ol id="correct-guesses"></ol>
+      <form id="guess" action="">
+        <p id="message-area">test</p>
+        <input autocomplete="off" /><button>Guess</button>
+      </form>
+      <div class="metadata">
+        <p id="blue-team-score"></p>
+        <p id="words-found"></p>
+        <p id="orange-team-score"></p>
+      </div>
+    </main>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      var socket = io();
+      var ol = document.querySelector("#correct-guesses");
+
+      socket.on('welcome', function(data){
+        renderGameState(data.state)
+      })
+
+      socket.on('correct-guess-you', function(data){
+        showMessage("Correct! #"+(data.index+1));
+        showNewGuess(data, true);
+      })
+
+      socket.on('correct-guess-other', function(data){
+        showNewGuess(data);
+      })
+
+      socket.on('incorrect-guess', function(){
+        showMessage("not in the list", true);
+      });
+
+      socket.on('already-found', function(){
+        showMessage("already found", true);
+      });
+
+      document.querySelector("#blue-team-start").addEventListener("click", function(e){
+        document.body.classList.add("blue");
+        window.team = "blue";
+        document.querySelector("#concierge").style.display = "none";
+      });
+
+      document.querySelector("#orange-team-start").addEventListener("click", function(e){
+        document.body.classList.add("orange");
+        window.team = "orange";
+        document.querySelector("#concierge").style.display = "none";
+      });
+
+      function renderGameState(state) {
+        updateMetadata(state.points[0], state.points[1], state.currentWordValue - 1);
+        //empty ol
+        while (ol.firstChild) {
+          ol.removeChild(ol.firstChild);
+        }
+        console.log(state);
+        for(var i = 0; i < state.words.length; i++) {
+          var li = document.createElement("LI");
+          if(state.words[i].team !== "") {
+            li.innerHTML = state.words[i].word;
+            li.classList.add(state.words[i].team);
+          }
+          ol.appendChild(li);
+        }
+      }
+
+      function updateMetadata(bluePoints, orangePoints, wordsFound) {
+        document.querySelector("#blue-team-score").innerHTML = bluePoints;
+        document.querySelector("#orange-team-score").innerHTML = orangePoints;
+        document.querySelector("#words-found").innerHTML = wordsFound;
+      }
+
+      function showMessage(text, isError) {
+        clearTimeout(window.currentErrorAnimation);
+        var e = document.getElementById("message-area");
+        if(isError) {
+          e.classList.add("error");
+        } else {
+          e.classList.remove("error");
+        }
+        e.innerHTML = text;
+        e.classList.add("shown");
+        window.currentErrorAnimation = setTimeout(function(){
+          e.classList.remove("shown");
+        },1000);
+      }
+
+      function showNewGuess(data, scroll) {
+        var all = ol.getElementsByTagName("li");
+        var newWord = all[data.index];
+        newWord.innerHTML = data.word;
+        newWord.classList.add(data.team);
+        updateMetadata(data.newScore[0], data.newScore[1], data.wordCount);
+        if(scroll) {
+          newWord.scrollIntoView({behavior: "smooth", block: "center", inline: "center"})
+        }
+      }
+
+      document.querySelector("#guess").addEventListener("submit", function(e){
+        var input = document.querySelector("#guess input");
+        e.preventDefault();
+        socket.emit('guess', {
+          word: input.value.toLowerCase(),
+          team: window.team
+        });
+        input.value = "";
+      })
+    </script>
+  </body>
+</html>
