@@ -17,7 +17,7 @@ app.get('/', function(req, res){
 });
 
 var puzzle = DICTIONARY
-.filter(e => e.indexOf("ine") !== -1)
+.filter(e => e.indexOf("nta") !== -1)
 .sort((a,b) => a < b ? -1 : 1)
 // .filter((e,i) => i > 0 && i < 100);
 
