@@ -1,5 +1,5 @@
 body {
-  font-family: "NYTFranklin";
+  font-family: "NYTFranklin", "Helvetica", sans-serif;
   background-color: #eee;
   --webkit-font-smoothing: antialiased;
 }
